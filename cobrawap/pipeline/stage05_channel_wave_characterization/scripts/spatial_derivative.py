@@ -82,6 +82,7 @@ def calc_spatial_derivative(evts, kernel_name, interpolate=False, smoothing=0):
 
         dt_y = d_vertical[y_coords, x_coords]
         dt_x = d_horizont[y_coords, x_coords]
+        dt_x[~np.isfinite(dt_x)] = 0 #added line
 
         df = pd.DataFrame(list(zip(dt_x, dt_y, x_coords, y_coords, channels)),
                           columns=['dt_x', 'dt_y', 'x_coords', 'y_coords', 'channel_id'])
