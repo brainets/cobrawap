@@ -53,7 +53,10 @@ def calc_local_wave_intervals(evts):
 
     return wave_ids, channel_ids, intervals*evts.times.units
 
-
+######## function wavefronts times ########
+def get_wavefront_times(evt_wavefronts):
+    wave_times = evt_wavefronts.times
+    return wave_times
 
 if __name__ == '__main__':
     args, unknown = CLI.parse_known_args()
@@ -61,9 +64,15 @@ if __name__ == '__main__':
     block = load_neo(args.data)
     asig = block.segments[0].analogsignals[0]
     imgseq = analogsignal_to_imagesequence(asig)
-
+    
     evts = block.filter(name=args.event_name, objects="Event")[0]
     evts = evts[evts.labels != '-1']
+
+    ###### Load wavefronts ######
+    block = load_neo(args.data)
+    evt_wavefronts = block.filter(name=args.event_name, objects="Event")[0]
+    wave_times = get_wavefront_times(evt_wavefronts)
+    #################
 
     wave_ids, channel_ids, intervals = calc_local_wave_intervals(evts)
 
@@ -73,6 +82,13 @@ if __name__ == '__main__':
     df['channel_id'] = channel_ids
     df[f'{args.event_name}_id'] = wave_ids
 
+    #df.to_csv(args.output)
+
+    # Create a dataframe for wave timings
+    wave_timing_df = pd.DataFrame(wave_times, columns=['wave_times'])
+
+    # Combine velocity_df and wave_timing_df
+    df = pd.concat([df, wave_timing_df], axis=1)
     df.to_csv(args.output)
 
     fig, ax = plt.subplots()
