@@ -23,40 +23,37 @@ CLI.add_argument("--event_name", "--EVENT_NAME", nargs='?', type=str, default='w
                  help="name of neo.Event to analyze (must contain waves)")
 
 def calc_local_wave_intervals(evts):
-    wave_labels = evts.labels.astype(int)
-    unique_labels = np.sort(np.unique(wave_labels))
-    unique_channels = np.sort(np.unique(evts.array_annotations['channels'].astype(int)))
+    wave_labels = evts.labels.astype(int) 
+    unique_labels = np.sort(np.unique(wave_labels)) 
+    unique_channels = np.sort(np.unique(evts.array_annotations['channels'].astype(int))) 
 
     channel_idx_map = np.empty(np.max(unique_channels)+1) * np.nan
+
     for i, channel in enumerate(unique_channels):
-        channel_idx_map[channel] = i
+        channel_idx_map[channel] = i 
 
     trigger_collection = np.empty((len(unique_labels), len(unique_channels)),
                                   dtype=float) * np.nan
                           
     for (i, wave_id) in enumerate(unique_labels):
-        wave_trigger_evts = evts[wave_labels == wave_id]
+        wave_trigger_evts = evts[wave_labels == wave_id] 
 
-        channels = wave_trigger_evts.array_annotations['channels'].astype(int)
+        channels = wave_trigger_evts.array_annotations['channels'].astype(int) 
         
-        channel_idx = channel_idx_map[channels].astype(int)
-        trigger_collection[i, channel_idx] = wave_trigger_evts.times
-
-    intervals = np.diff(trigger_collection, axis=0)
-    intervals = intervals.reshape((len(unique_labels)-1)*len(unique_channels))
+        channel_idx = channel_idx_map[channels].astype(int) 
+        trigger_collection[i, channel_idx] = wave_trigger_evts.times 
+        
+    intervals = np.diff(trigger_collection, axis=0) 
+    intervals = intervals.reshape((len(unique_labels)-1)*len(unique_channels)) 
 
     mask = np.isfinite(intervals)
-    intervals = intervals[mask]
-    
-    channel_ids = np.tile(unique_channels, len(unique_labels)-1)[mask]
+    intervals = intervals[mask] 
+
+    channel_ids = np.tile(unique_channels, len(unique_labels)-1)[mask] 
     wave_ids = np.repeat(unique_labels[:-1], len(unique_channels))[mask]
+    wave_time_start = trigger_collection[0:-1, :].reshape((len(unique_labels)-1)*len(unique_channels))[mask]
 
-    return wave_ids, channel_ids, intervals*evts.times.units
-
-######## function wavefronts times ########
-def get_wavefront_times(evt_wavefronts):
-    wave_times = evt_wavefronts.times
-    return wave_times
+    return wave_ids, channel_ids, intervals*evts.times.units, wave_time_start
 
 if __name__ == '__main__':
     args, unknown = CLI.parse_known_args()
@@ -68,27 +65,15 @@ if __name__ == '__main__':
     evts = block.filter(name=args.event_name, objects="Event")[0]
     evts = evts[evts.labels != '-1']
 
-    ###### Load wavefronts ######
-    block = load_neo(args.data)
-    evt_wavefronts = block.filter(name=args.event_name, objects="Event")[0]
-    wave_times = get_wavefront_times(evt_wavefronts)
-    #################
-
-    wave_ids, channel_ids, intervals = calc_local_wave_intervals(evts)
+    wave_ids, channel_ids, intervals, wave_time_start = calc_local_wave_intervals(evts)
 
     # transform to DataFrame
     df = pd.DataFrame(intervals.magnitude, columns=['inter_wave_interval_local'])
     df['inter_wave_interval_local_unit'] = [intervals.dimensionality.string]*len(channel_ids)
     df['channel_id'] = channel_ids
     df[f'{args.event_name}_id'] = wave_ids
-
-    #df.to_csv(args.output)
-
-    # Create a dataframe for wave timings
-    wave_timing_df = pd.DataFrame(wave_times, columns=['wave_times'])
-
-    # Combine velocity_df and wave_timing_df
-    df = pd.concat([df, wave_timing_df], axis=1)
+    df['wave_time_start'] = wave_time_start
+    
     df.to_csv(args.output)
 
     fig, ax = plt.subplots()
