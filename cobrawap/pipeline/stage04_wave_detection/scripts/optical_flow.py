@@ -4,6 +4,7 @@ using the Horn Schunck algorithm.
 """
 
 import argparse
+from tqdm import tqdm
 from scipy.ndimage import gaussian_filter
 from scipy.signal import hilbert
 import neo
@@ -106,11 +107,10 @@ def horn_schunck(frames, alpha, max_Niter, convergence_limit,
 
     vector_frames = np.zeros(frames.shape, dtype=complex)
 
-    print("IM HERRRRREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE")
+    n_frames = len(frames[:-1])
+    pbar = tqdm(total=n_frames)
     for i, frame in enumerate(frames[:-1]):
         next_frame = frames[i+1]
-
-        print(f"{i}/{len(frames)}")
 
         vector_frames[i] = horn_schunck_step(frame,
                                              next_frame,
@@ -123,6 +123,9 @@ def horn_schunck(frames, alpha, max_Niter, convergence_limit,
                                              kernelY=kernelY,
                                              are_phases=are_phases)
         vector_frames[i][nan_channels] = np.nan + np.nan*1j
+
+        pbar.update(1)
+    pbar.close()
 
     frames[:,nan_channels[0],nan_channels[1]] = np.nan
     return vector_frames
