@@ -59,7 +59,7 @@ use rule template as optical_flow with:
         script = SCRIPTS / 'optical_flow.py'
     params:
         params('alpha', 'max_Niter', 'convergence_limit', 'gaussian_sigma',
-               'derivative_filter', 'use_phases', config=config)
+               'derivative_filter', 'use_phases', 'njobs', config=config)
     log:
         Path('{dir}') / "logs" / "logfile.log",
     output:

@@ -4,7 +4,7 @@ using the Horn Schunck algorithm.
 """
 
 import argparse
-from tqdm import tqdm
+from joblib import Parallel, delayed
 from scipy.ndimage import gaussian_filter
 from scipy.signal import hilbert
 import neo
