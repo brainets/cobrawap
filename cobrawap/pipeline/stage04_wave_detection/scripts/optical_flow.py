@@ -107,6 +107,7 @@ def horn_schunck(frames, alpha, max_Niter, convergence_limit,
 
     vector_frames = np.zeros(frames.shape, dtype=complex)
 
+    print("IM HERRRRREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE")
     n_frames = len(frames[:-1])
     pbar = tqdm(total=n_frames)
     for i, frame in enumerate(frames[:-1]):
