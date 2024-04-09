@@ -61,6 +61,8 @@ GAUSSIAN_SIGMA: [0,3,3]
 # Kernel filter to use to calculate the spatial derivatives.
 # simple_3x3, prewitt_3x3, scharr_3x3, sobel_3x3, sobel_5x5, sobel_7x7
 DERIVATIVE_FILTER: 'scharr_3x3'
+# Number of jobs for computations
+NJOBS: -1
 
 # Critical Point Clustering
 ###########################
