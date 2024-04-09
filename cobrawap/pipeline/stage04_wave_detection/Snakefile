@@ -60,11 +60,11 @@ use rule template as optical_flow with:
     params:
         params('alpha', 'max_Niter', 'convergence_limit', 'gaussian_sigma',
                'derivative_filter', 'use_phases', config=config)
+    log:
+        Path('{dir}') / "logs" / "logfile.log",
     output:
         Path('{dir}') / 'optical_flow' / f'optical_flow.{config.NEO_FORMAT}',
         output_img = Path('{dir}') / 'optical_flow' / f'optical_flow.{config.PLOT_FORMAT}'
-    log:
-        Path('{dir}') / "logs/{sample}-{unit}.log",
 
 
 use rule template_plus_plot_script as critical_points with:
