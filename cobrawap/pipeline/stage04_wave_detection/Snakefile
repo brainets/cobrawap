@@ -27,6 +27,8 @@ rule merge_wave_definitions:
         script = SCRIPTS / 'merge_wave_definitions.py'
     output:
         Path('{dir}') / 'merge_wave_definitions' / config.STAGE_OUTPUT
+    log:
+        Path('{dir}') / "logs/merge_wave_definitions/{sample}.log"
     shell:
         """
         {ADD_UTILS}
@@ -61,7 +63,7 @@ use rule template as optical_flow with:
         params('alpha', 'max_Niter', 'convergence_limit', 'gaussian_sigma',
                'derivative_filter', 'use_phases', 'njobs', config=config)
     log:
-        Path('{dir}') / "logs" / "logfile.log",
+        Path('{dir}') / "logs/optical_flow/{sample}.log"
     output:
         Path('{dir}') / 'optical_flow' / f'optical_flow.{config.NEO_FORMAT}',
         output_img = Path('{dir}') / 'optical_flow' / f'optical_flow.{config.PLOT_FORMAT}'
@@ -101,6 +103,8 @@ use rule template as wave_mode_clustering with:
         params('min_trigger_fraction', 'num_wave_neighbours', 'pca_dims',
                'wave_outlier_quantile', 'num_kmeans_cluster',
                'interpolation_step_size', 'interpolation_smoothing', config=config)
+    log:
+        Path('{dir}') / "logs/wave_mode_clustering/{sample}.log"
     output:
         Path('{dir}') / 'wave_mode_clustering' / f'wave_mode_clustering.{config.NEO_FORMAT}',
         output_img = Path('{dir}') / 'wave_mode_clustering' / f'wave_mode_clustering.{config.PLOT_FORMAT}'
