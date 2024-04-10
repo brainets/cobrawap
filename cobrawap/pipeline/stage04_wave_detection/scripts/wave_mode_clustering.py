@@ -427,15 +427,16 @@ if __name__ == "__main__":
     dim_t, num_channels = asig.shape
 
     ## BUILD TIMELAG MATRIX
-    print("1. TIMELAG DATAFRAME")
     logging.error("1. TIMELAG DATAFRAME")
     waves = block.filter(name="wavefronts", objects="Event")[0]
     waves = waves[waves.labels.astype(str) != "-1"]
 
     if len(waves):
+        logging.error("------- 1.1 BUILD TIMELAG DF")
         timelag_df = build_timelag_dataframe(waves)
 
         ## CLEAN TIMELAG MATRIX
+        logging.error("------- 1.2 CLEAN TIMELAG DF")
         timelag_df = clean_timelag_dataframe(
             timelag_df,
             min_trigger_fraction=args.min_trigger_fraction,
@@ -453,13 +454,11 @@ if __name__ == "__main__":
         quit()
 
     ## CLUSTER WAVE MODES
-    print("2. PCA")
     logging.error("2. PCA")
     # PCA transform the timelag_matrix
     timelag_matrix_transformed = pca_transform(timelag_df, dims=args.pca_dims)
 
     # kmeans cluster the transformed timelag_matrix into modes
-    print("3. KMEANS CLUSTERING")
     logging.error("3. KMEANS CLUSTERING")
     kout = kmeans_cluster_waves(
         timelag_matrix_transformed, n_cluster=args.num_kmeans_cluster
@@ -473,7 +472,6 @@ if __name__ == "__main__":
 
     mode_labels, mode_counts = np.unique(mode_ids, return_counts=True)
 
-    print('4. DISTORTION')
     logging.error('4. DISTORTION')
     mode_dists = calc_cluster_distortions(
         timelag_matrix_transformed,
@@ -492,7 +490,6 @@ if __name__ == "__main__":
     n_modes, dim_y, dim_x = mode_grids.shape
 
     # interpolate average mode timelags as pattern on grid
-    print("5. INTERPOLATION")
     logging.error("5. INTERPOLATION")
     for i, cluster_grid in enumerate(mode_grids):
         pattern_func = interpolate_grid(
