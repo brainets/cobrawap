@@ -102,7 +102,7 @@ use rule template as wave_mode_clustering with:
     params:
         params('min_trigger_fraction', 'num_wave_neighbours', 'pca_dims',
                'wave_outlier_quantile', 'num_kmeans_cluster',
-               'interpolation_step_size', 'interpolation_smoothing', config=config)
+               'interpolation_step_size', 'interpolation_smoothing', 'njobs', config=config)
     log:
         Path('{dir}') / "logs/wave_mode_clustering/wave_mode_clustering.log"
     output:

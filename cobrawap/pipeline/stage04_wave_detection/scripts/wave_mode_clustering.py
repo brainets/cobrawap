@@ -20,6 +20,8 @@ import matplotlib.pyplot as plt
 from utils.io_utils import load_neo, write_neo, save_plot
 from utils.parse import none_or_str, none_or_int
 from utils.neo_utils import analogsignal_to_imagesequence, remove_annotations
+from joblib import Parallel, delayed
+import multiprocessing
 
 CLI = argparse.ArgumentParser()
 CLI.add_argument(
@@ -95,6 +97,13 @@ CLI.add_argument(
     default=0,
     help="0: no smoothing, >0: more smoothing",
 )
+CLI.add_argument(
+    "--njobs",
+    nargs="?",
+    type=int,
+    default=1,
+    help="number of jobs",
+)
 
 
 def build_timelag_dataframe(waves_evt, normalize=True):
@@ -125,7 +134,7 @@ def build_timelag_dataframe(waves_evt, normalize=True):
 
 
 def fill_nan_sites_from_similar_waves(
-    timelag_df, num_neighbours=5, outlier_quantile=0.95
+    timelag_df, num_neighbours=5, outlier_quantile=0.95, n_jobs=1
 ):
     # ToDo: this doesn't work with too few waves!
     ## init arrays
@@ -136,10 +145,26 @@ def fill_nan_sites_from_similar_waves(
 
     stds = np.array([])
     ## calculate wave distances
-    for i, (a, b) in enumerate(zip(pair_indices[0], pair_indices[1])):
-        wave_a, wave_b = timelag_df.iloc[a], timelag_df.iloc[b]
-        wavepair_distances[i] = np.nanmean(np.abs(wave_a - wave_b))
+    print("compute distance")
+    if n_jobs == -1:
+        n_jobs = int(multiprocessing.cpu_count())
+    blocks = np.array_split(np.stack(pair_indices, axis=1), n_jobs, axis=0)
 
+    def _compute_wave_dist_block(indices):
+        _wavepair_distances = np.full((indices.shape[0],), np.nan)
+        for i, (a, b) in enumerate(zip(indices[:, 0], indices[:, 1])):
+            wave_a = timelag_df.iloc[a].values
+            wave_b = timelag_df.iloc[b].values
+            _wavepair_distances[i] = np.nanmean(np.abs(wave_a - wave_b))
+        return _wavepair_distances
+
+    wavepair_distances = Parallel(n_jobs=n_jobs)(
+        delayed(_compute_wave_dist_block)(block)
+        for block in blocks
+    )
+    wavepair_distances = np.concatenate(wavepair_distances)
+
+    print("do something I don't understand")
     for row, wave_id in enumerate(timelag_df.index):
         ## sort other waves by their distance
         pair_pos = get_triu_indices_pos(i=row, N=num_waves)
@@ -178,6 +203,7 @@ def fill_nan_sites_from_similar_waves(
         q = np.quantile(neighbourhood_distance, outlier_quantile)
         keep_rows = np.where(neighbourhood_distance <= q)[0]
         timelag_df = timelag_df.iloc[keep_rows, :]
+
     return timelag_df
 
 
@@ -401,6 +427,7 @@ def clean_timelag_dataframe(
     min_trigger_fraction=0.5,
     num_wave_neighbours=5,
     wave_outlier_quantile=1,
+    n_jobs=1,
 ):
     # remove nan channels
     df.dropna(axis="columns", how="all", inplace=True)
@@ -414,12 +441,14 @@ def clean_timelag_dataframe(
         df,
         num_neighbours=num_wave_neighbours,
         outlier_quantile=wave_outlier_quantile,
+        n_jobs=n_jobs,
     )
     return df
 
 
 if __name__ == "__main__":
     import logging
+
     args, unknown = CLI.parse_known_args()
 
     block = load_neo(args.data)
@@ -442,6 +471,7 @@ if __name__ == "__main__":
             min_trigger_fraction=args.min_trigger_fraction,
             num_wave_neighbours=args.num_wave_neighbours,
             wave_outlier_quantile=args.wave_outlier_quantile,
+            n_jobs=args.njobs
         )
     else:
         timelag_df = []
@@ -472,7 +502,7 @@ if __name__ == "__main__":
 
     mode_labels, mode_counts = np.unique(mode_ids, return_counts=True)
 
-    logging.error('4. DISTORTION')
+    logging.error("4. DISTORTION")
     mode_dists = calc_cluster_distortions(
         timelag_matrix_transformed,
         cluster_indices=mode_ids,
