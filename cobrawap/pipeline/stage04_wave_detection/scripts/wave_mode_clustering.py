@@ -98,7 +98,6 @@ CLI.add_argument(
 
 
 def build_timelag_dataframe(waves_evt, normalize=True):
-    import logging
     wave_ids = np.unique(waves_evt.labels).astype(int)
     channel_ids = np.unique(waves_evt.array_annotations["channels"])
 
@@ -112,12 +111,10 @@ def build_timelag_dataframe(waves_evt, normalize=True):
 
     # fill timelag dataframe
     for i, trigger in enumerate(waves_evt):
-        logging.error(f"{i} / {len(waves_evt)}")
         wave_id = int(trigger.labels)
         channel_id = waves_evt.array_annotations["channels"][i]
         # use only first trigger per channel and wave
         if np.isnan(timelag_df[channel_id][wave_id]):
-            # timelag_df.loc[channel_id, wave_id] = trigger.magnitude
             timelag_df[channel_id][wave_id] = trigger.magnitude
 
     if normalize:
