@@ -78,7 +78,6 @@ if __name__ == "__main__":
 
     block = load_neo(args.data)
     asig = block.segments[0].analogsignals[0]
-    imgseq = analogsignal_to_imagesequence(asig)
 
     evts = block.filter(name=args.event_name, objects="Event")[0]
     evts = evts[evts.labels != "-1"]

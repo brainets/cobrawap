@@ -22,6 +22,7 @@ from utils.parse import none_or_str, none_or_int
 from utils.neo_utils import analogsignal_to_imagesequence, remove_annotations
 from joblib import Parallel, delayed
 import multiprocessing
+from tqdm import tqdm
 
 CLI = argparse.ArgumentParser()
 CLI.add_argument(
@@ -99,6 +100,7 @@ CLI.add_argument(
 )
 CLI.add_argument(
     "--njobs",
+    "--NJOBS",
     nargs="?",
     type=int,
     default=1,
@@ -140,31 +142,35 @@ def fill_nan_sites_from_similar_waves(
     ## init arrays
     num_waves = timelag_df.index.size
     pair_indices = np.triu_indices(num_waves, 1)
-    wavepair_distances = np.empty(len(pair_indices[0]), dtype=float) * np.nan
     neighbourhood_distance = np.empty(num_waves, dtype=float) * np.nan
 
     stds = np.array([])
     ## calculate wave distances
-    print("compute distance")
-    if n_jobs == -1:
-        n_jobs = int(multiprocessing.cpu_count())
-    blocks = np.array_split(np.stack(pair_indices, axis=1), n_jobs, axis=0)
+    # if n_jobs == -1:
+    #     n_jobs = int(multiprocessing.cpu_count())
+    # blocks = np.array_split(np.stack(pair_indices, axis=1), n_jobs, axis=0)
 
-    def _compute_wave_dist_block(indices):
-        _wavepair_distances = np.full((indices.shape[0],), np.nan)
-        for i, (a, b) in enumerate(zip(indices[:, 0], indices[:, 1])):
-            wave_a = timelag_df.iloc[a].values
-            wave_b = timelag_df.iloc[b].values
-            _wavepair_distances[i] = np.nanmean(np.abs(wave_a - wave_b))
-        return _wavepair_distances
+    # def _compute_wave_dist_block(indices):
+    #     _wavepair_distances = np.full((indices.shape[0],), np.nan)
+    #     for i, (a, b) in enumerate(zip(indices[:, 0], indices[:, 1])):
+    #         wave_a = timelag_df.iloc[a].values
+    #         wave_b = timelag_df.iloc[b].values
+    #         _wavepair_distances[i] = np.nanmean(np.abs(wave_a - wave_b))
+    #     return _wavepair_distances
 
-    wavepair_distances = Parallel(n_jobs=n_jobs)(
-        delayed(_compute_wave_dist_block)(block)
-        for block in blocks
-    )
-    wavepair_distances = np.concatenate(wavepair_distances)
+    # wavepair_distances = Parallel(n_jobs=n_jobs)(
+    #     delayed(_compute_wave_dist_block)(block)
+    #     for block in blocks
+    # )
+    # wavepair_distances = np.concatenate(wavepair_distances)
 
-    print("do something I don't understand")
+    ## calculate wave distances
+    wavepair_distances = np.empty(len(pair_indices[0]), dtype=float) * np.nan
+    for i in tqdm(np.arange(pair_indices.shape[0])):
+        a, b = pair_indices[i, 0], pair_indices[i, 1]
+        wave_a, wave_b = timelag_df.iloc[a], timelag_df.iloc[b]
+        wavepair_distances[i] = np.nanmean(np.abs(wave_a - wave_b))
+
     for row, wave_id in enumerate(timelag_df.index):
         ## sort other waves by their distance
         pair_pos = get_triu_indices_pos(i=row, N=num_waves)
