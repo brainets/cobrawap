@@ -166,7 +166,7 @@ def fill_nan_sites_from_similar_waves(
 
     ## calculate wave distances
     wavepair_distances = np.empty(len(pair_indices[0]), dtype=float) * np.nan
-    for i in tqdm(np.arange(pair_indices.shape[0])):
+    for i in tqdm(np.arange(pair_indices[0].shape[0])):
         a, b = pair_indices[i, 0], pair_indices[i, 1]
         wave_a, wave_b = timelag_df.iloc[a], timelag_df.iloc[b]
         wavepair_distances[i] = np.nanmean(np.abs(wave_a - wave_b))
