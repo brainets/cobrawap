@@ -108,6 +108,52 @@ CLI.add_argument(
 )
 
 
+try:
+    import numba
+    from numba import prange
+
+    def jit(
+        signature=None,
+        nopython=True,
+        nogil=True,
+        fastmath=True,  # noqa
+        cache=True,
+        **kwargs,
+    ):
+        return numba.jit(
+            signature_or_function=signature,
+            cache=cache,
+            nogil=nogil,
+            fastmath=fastmath,
+            nopython=nopython,
+            **kwargs,
+        )
+
+except:
+
+    def jit(*args, **kwargs):  # noqa
+        def _jit(func):
+            return func
+
+        return _jit
+
+
+@jit(
+    "f4[:](f4[:,:], i8[:,:])",
+    nopython=True,
+    parallel=True,
+    nogil=True,
+    fastmath=True,
+)
+def compute_distance(x, pairs):
+    n_pairs = pairs.shape[0]
+    distances = np.full((n_pairs,), np.nan, dtype=np.float32)
+    for i in prange(n_pairs):
+        wave_a, wave_b = x[pairs[i, 0], :], x[pairs[i, 1], :]
+        distances[i] = np.nanmean(np.abs(wave_a - wave_b))
+    return distances
+
+
 def build_timelag_dataframe(waves_evt, normalize=True):
     wave_ids = np.unique(waves_evt.labels).astype(int)
     channel_ids = np.unique(waves_evt.array_annotations["channels"])
@@ -143,33 +189,19 @@ def fill_nan_sites_from_similar_waves(
     num_waves = timelag_df.index.size
     pair_indices = np.triu_indices(num_waves, 1)
     neighbourhood_distance = np.empty(num_waves, dtype=float) * np.nan
-
     stds = np.array([])
-    ## calculate wave distances
-    # if n_jobs == -1:
-    #     n_jobs = int(multiprocessing.cpu_count())
-    # blocks = np.array_split(np.stack(pair_indices, axis=1), n_jobs, axis=0)
 
-    # def _compute_wave_dist_block(indices):
-    #     _wavepair_distances = np.full((indices.shape[0],), np.nan)
-    #     for i, (a, b) in enumerate(zip(indices[:, 0], indices[:, 1])):
-    #         wave_a = timelag_df.iloc[a].values
-    #         wave_b = timelag_df.iloc[b].values
-    #         _wavepair_distances[i] = np.nanmean(np.abs(wave_a - wave_b))
-    #     return _wavepair_distances
-
-    # wavepair_distances = Parallel(n_jobs=n_jobs)(
-    #     delayed(_compute_wave_dist_block)(block)
-    #     for block in blocks
-    # )
-    # wavepair_distances = np.concatenate(wavepair_distances)
+    # calculate wave distances
+    wavepair_distances = compute_distance(
+        timelag_df.values.astype(np.float32), np.stack(pair_indices, axis=0)
+    )
 
     ## calculate wave distances
-    wavepair_distances = np.empty(len(pair_indices[0]), dtype=float) * np.nan
-    for i in tqdm(np.arange(pair_indices[0].shape[0])):
-        a, b = pair_indices[0][i], pair_indices[1][i]
-        wave_a, wave_b = timelag_df.iloc[a], timelag_df.iloc[b]
-        wavepair_distances[i] = np.nanmean(np.abs(wave_a - wave_b))
+    # wavepair_distances = np.empty(len(pair_indices[0]), dtype=float) * np.nan
+    # for i in tqdm(np.arange(pair_indices[0].shape[0])):
+    #     a, b = pair_indices[0][i], pair_indices[1][i]
+    #     wave_a, wave_b = timelag_df.iloc[a], timelag_df.iloc[b]
+    #     wavepair_distances[i] = np.nanmean(np.abs(wave_a - wave_b))
 
     for row, wave_id in enumerate(timelag_df.index):
         ## sort other waves by their distance
@@ -477,7 +509,7 @@ if __name__ == "__main__":
             min_trigger_fraction=args.min_trigger_fraction,
             num_wave_neighbours=args.num_wave_neighbours,
             wave_outlier_quantile=args.wave_outlier_quantile,
-            n_jobs=args.njobs
+            n_jobs=args.njobs,
         )
     else:
         timelag_df = []
