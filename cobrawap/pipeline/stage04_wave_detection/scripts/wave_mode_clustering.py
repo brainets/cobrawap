@@ -130,7 +130,7 @@ try:
         )
 
 except:
-
+    prange = range
     def jit(*args, **kwargs):  # noqa
         def _jit(func):
             return func
@@ -193,7 +193,7 @@ def fill_nan_sites_from_similar_waves(
 
     # calculate wave distances
     wavepair_distances = compute_distance(
-        timelag_df.values.astype(np.float32), np.stack(pair_indices, axis=0)
+        timelag_df.values.astype(np.float32), np.stack(pair_indices, axis=1)
     )
 
     ## calculate wave distances
