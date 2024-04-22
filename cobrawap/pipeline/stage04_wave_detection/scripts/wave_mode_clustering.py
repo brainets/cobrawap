@@ -193,11 +193,11 @@ def fill_nan_sites_from_similar_waves(
     stds = np.array([])
 
     # calculate wave distances
-    logger.error(f"------- COMPUTE DISTANCE ({len(pair_indices[0])}) -------")
+    logging.error(f"------- COMPUTE DISTANCE ({len(pair_indices[0])}) -------")
     wavepair_distances = compute_distance(
         timelag_df.values.astype(np.float32), np.stack(pair_indices, axis=1)
     )
-    logger.error("--------- DISTANCE DONE ---------")
+    logging.error("--------- DISTANCE DONE ---------")
 
     ## calculate wave distances
     # wavepair_distances = np.empty(len(pair_indices[0]), dtype=float) * np.nan
