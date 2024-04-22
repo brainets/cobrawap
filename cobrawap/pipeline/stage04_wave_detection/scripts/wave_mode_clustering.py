@@ -23,6 +23,7 @@ from utils.neo_utils import analogsignal_to_imagesequence, remove_annotations
 from joblib import Parallel, delayed
 import multiprocessing
 from tqdm import tqdm
+import logging
 
 CLI = argparse.ArgumentParser()
 CLI.add_argument(
@@ -192,9 +193,11 @@ def fill_nan_sites_from_similar_waves(
     stds = np.array([])
 
     # calculate wave distances
+    logger.error(f"------- COMPUTE DISTANCE ({len(pair_indices[0])}) -------")
     wavepair_distances = compute_distance(
         timelag_df.values.astype(np.float32), np.stack(pair_indices, axis=1)
     )
+    logger.error("--------- DISTANCE DONE ---------")
 
     ## calculate wave distances
     # wavepair_distances = np.empty(len(pair_indices[0]), dtype=float) * np.nan
@@ -485,8 +488,6 @@ def clean_timelag_dataframe(
 
 
 if __name__ == "__main__":
-    import logging
-
     args, unknown = CLI.parse_known_args()
 
     block = load_neo(args.data)
